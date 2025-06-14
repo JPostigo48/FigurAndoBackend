@@ -17,7 +17,7 @@ router.route('/add').post((req,res)=>{
     const nombre = req.body.nombre;
     const contra = req.body.contra;
     const figuras = [];
-    const rol = "admin";
+    const rol = req.body.rol;
     const newUsuario = new Usuario({nombre, contra, figuras, rol});
     newUsuario.save()
     .then(() => res.json('Usuario añadido'))
