@@ -10,7 +10,7 @@ const port = process.env.PORT || 5000;
 
 app.use(cors()) ;
 app.use(express.json());
-app.use(morgan('tiny'));
+// app.use(morgan('tiny'));
 
 const uri = process.env.MONGODB_URI;
 mongoose.connect(uri);
