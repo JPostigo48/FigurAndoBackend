@@ -9,7 +9,7 @@ const port = process.env.PORT || 5000;
 
 
 app.use(cors({
-  origin: ["http://localhost:3000", "https://tu-frontend.vercel.app"],
+  origin: ["http://localhost:3000", "https://figurando-frontend.vercel.app/"],
   methods: ["GET","POST","PUT","DELETE","OPTIONS"],
   allowedHeaders: ["Content-Type","Authorization"]
 }));
