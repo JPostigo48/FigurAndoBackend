@@ -71,7 +71,7 @@ router.route('/login').post(async (req, res) => {
       const usuario = await Usuario.findById(userId)
         .populate({
           path: "albumesUsuario",
-          select: "nombre editorial imagen"  // campos a devolver
+          select: "id nombre editorial imagen"  // campos a devolver
         });
   
       if (!usuario) {
