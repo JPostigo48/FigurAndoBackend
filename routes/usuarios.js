@@ -27,12 +27,29 @@ router.route('/add').post((req,res)=>{
 router.get("/:userId/figuras", async (req, res) => {
   const { userId } = req.params;
   const { albumId } = req.query;
+
+  const album = await Album.findById(albumId);
+  if (!album) return res.status(404).json({ error: "Álbum no encontrado" });
+
   const usuario = await Usuario.findById(userId)
     .populate("figurasUsuario.figura");
+
   const data = usuario.figurasUsuario
-    .filter(fu => fu.figura.album.toString() === albumId)
+    .filter(fu => fu.figura.album === album.nombre)  // compara nombre
     .map(fu => ({ figura: fu.figura, count: fu.count }));
+
   res.json(data);
+});
+
+router.get("/:id/nombre", async (req, res) => {
+  try {
+    const user = await Usuario.findById(req.params.id).select("nombre");
+    if (!user) return res.status(404).json({ error: "Usuario no encontrado" });
+    res.json({ nombre: user.nombre });
+  } catch (err) {
+    console.error("Error al obtener nombre de usuario:", err);
+    res.status(500).json({ error: "Error de servidor" });
+  }
 });
 
 

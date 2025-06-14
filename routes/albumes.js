@@ -34,6 +34,17 @@ router.route("/add").post(async (req, res) => {
   }
 });
 
+router.get("/:id/nombre", async (req, res) => {
+  try {
+    const album = await Album.findById(req.params.id).select("nombre");
+    if (!album) return res.status(404).json({ error: "Álbum no encontrado" });
+    res.json({ nombre: album.nombre });
+  } catch (err) {
+    console.error("Error al obtener nombre de álbum:", err);
+    res.status(500).json({ error: "Error de servidor" });
+  }
+});
+
 // GET album by ID
 router.route("/:id").get(async (req, res) => {
   try {
