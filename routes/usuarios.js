@@ -24,6 +24,18 @@ router.route('/add').post((req,res)=>{
     .catch(err => res.status(400).json('Error'+err));
 });
 
+router.get("/:userId/figuras", async (req, res) => {
+  const { userId } = req.params;
+  const { albumId } = req.query;
+  const usuario = await Usuario.findById(userId)
+    .populate("figurasUsuario.figura");
+  const data = usuario.figurasUsuario
+    .filter(fu => fu.figura.album.toString() === albumId)
+    .map(fu => ({ figura: fu.figura, count: fu.count }));
+  res.json(data);
+});
+
+
 router.route('/login').post(async (req, res) => {
     try {
       const { nombre, contra } = req.body;
