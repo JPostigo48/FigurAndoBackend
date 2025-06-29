@@ -1,6 +1,7 @@
 // routes/albumes.js
 const router = require("express").Router();
 const Album = require("../models/album.model");
+const Figura = require("../models/figura.model");
 
 // GET all albumes
 router.route("/").get(async (req, res) => {
