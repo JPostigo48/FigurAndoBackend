@@ -84,4 +84,52 @@ router.route("/update/:id").post(async (req, res) => {
   }
 });
 
+// GET figuras de un álbum (populando referencias)
+router.get("/:id/figuras", async (req, res) => {
+  try {
+    const album = await Album.findById(req.params.id).populate("figuras");
+    if (!album) return res.status(404).json({ error: "Álbum no encontrado" });
+    // devolvemos el array de figuras completas
+    res.json(album.figuras);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Error de servidor" });
+  }
+});
+
+// POST para añadir una figura a un álbum
+router.post("/:id/add-figure", async (req, res) => {
+  const albumId = req.params.id;
+  const { tipo, code } = req.body;
+
+  if (!tipo || !code) {
+    return res
+      .status(400)
+      .json({ error: "Campos obligatorios: tipo y code" });
+  }
+
+  try {
+    const album = await Album.findById(albumId);
+    if (!album) return res.status(404).json({ error: "Álbum no encontrado" });
+
+    // 1) Creamos la figura
+    const nuevaFigura = new Figura({
+      album: albumId,
+      tipo,
+      code
+    });
+    await nuevaFigura.save();
+
+    // 2) Asociamos al álbum
+    album.figuras.push(nuevaFigura._id);
+    await album.save();
+
+    // 3) Devolvemos la figura recién creada
+    res.json({ figure: nuevaFigura });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Error al añadir figura" });
+  }
+});
+
 module.exports = router;
