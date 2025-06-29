@@ -103,6 +103,9 @@ router.post("/:id/add-figure", async (req, res) => {
   const albumId = req.params.id;
   const { tipo, code } = req.body;
 
+  const album = await Album.findById(req.params.id);
+  if (!album) return res.status(404).json("Album no encontrado");
+
   if (!tipo || !code) {
     return res
       .status(400)
@@ -115,7 +118,7 @@ router.post("/:id/add-figure", async (req, res) => {
 
     // 1) Creamos la figura
     const nuevaFigura = new Figura({
-      album: albumId,
+      album: album.nombre,
       tipo,
       code
     });
@@ -129,7 +132,10 @@ router.post("/:id/add-figure", async (req, res) => {
     res.json({ figure: nuevaFigura });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Error al añadir figura" });
+    res.status(500).json({
+      message: "Error al añadir figura",
+      error: err
+    });
   }
 });
 
