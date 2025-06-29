@@ -145,6 +145,10 @@ router.route('/login').post(async (req, res) => {
   
     const usuario = await Usuario.findById(req.user._id)
       .populate("figurasUsuario.figura");
+
+    if (!usuario) {
+      return res.status(404).json({ error: "Usuario no encontrado" });
+    }
   
     const data = usuario.figurasUsuario
       .filter(fu => fu.figura.album === album.nombre)  // compara nombre
