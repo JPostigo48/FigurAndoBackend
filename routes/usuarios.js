@@ -4,6 +4,7 @@ const jwt    = require('jsonwebtoken');
 const auth     = require("../middleware/auth");  
 const Album    = require("../models/album.model"); 
 const Usuario  = require("../models/usuario.model");
+const Figura = require("../models/figura.model");
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
@@ -149,9 +150,25 @@ router.route('/login').post(async (req, res) => {
     if (!usuario) {
       return res.status(404).json({ error: "Usuario no encontrado" });
     }
+
+    // const missing = [];
+    // let i=0
+    // for (const fu of usuario.figurasUsuario) {
+    //   i=i+1
+    //   // Si ya vino null en populate, la guardamos
+    //   const fig = fu.figura.album;
+    //   console.log(fig+" "+i)
+    //   // Verificamos existencia en la colección figuras
+    //   const exists = Figura.exists({ _id: fig });
+    //   if (!exists) missing.push(id);
+    // }
+
+    // console.log(missing)
+    
   
     const data = usuario.figurasUsuario
-      .filter(fu => fu.figura.album === album.nombre)  // compara nombre
+      .filter(fu => fu.figura !== null)
+      .filter(fu => fu.figura.album === album.nombre) 
       .map(fu => ({ figura: fu.figura, count: fu.count }));
   
     res.json(data);
