@@ -12,16 +12,9 @@ const figuraSchema = new Schema({
   },
   tipo: {
     type: String,
-    enum: [
-      'normal',
-      'dorado_normal',
-      'dorado_escarchado',
-      'lenticular',
-      'troquelada',
-      'premio'
-    ],
-    required: true
-  },
+    required: true,
+    trim: true
+  }
 }, { timestamps: true })
 
 module.exports = mongoose.model('Figura', figuraSchema)

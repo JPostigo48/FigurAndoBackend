@@ -5,7 +5,33 @@ const { Schema } = mongoose
 const figurasUsuarioSchema = new Schema({
   figura: {
     type: Schema.Types.ObjectId,
-    ref: 'Figura',        // Asegúrate de usar el nombre correcto de tu modelo
+    ref: 'Figura',
+    required: true
+  },
+  tipo:   { type: String, required: true },
+  count: {
+    type: Number,
+    default: 0,
+    min: 0
+  }
+}, { _id: false })
+
+const setUsuarioSchema = new Schema({
+  album: {
+    type: Schema.Types.ObjectId,
+    ref: 'Album',
+    required: true
+  },
+  tipo: {
+    type: String,
+    enum: [
+      'normal',
+      'dorado_normal',
+      'dorado_escarchado',
+      'lenticular',
+      'troquelada',
+      'premio'
+    ],
     required: true
   },
   count: {
@@ -13,7 +39,7 @@ const figurasUsuarioSchema = new Schema({
     default: 0,
     min: 0
   }
-}, { _id: false })
+}, { _id: false });
 
 const usuarioSchema = new Schema({
   nombre: {
@@ -33,6 +59,7 @@ const usuarioSchema = new Schema({
     ref: 'Album',                              
   }],
   figurasUsuario: [ figurasUsuarioSchema ],
+  setsUsuario:     [ setUsuarioSchema ], 
   rol: {
     type: String,
     enum: ['usuario','admin'],

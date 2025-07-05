@@ -175,18 +175,38 @@ router.route('/login').post(async (req, res) => {
   });
   
 
-// POST /usuarios/update-figura
-router.post("/update-figura", auth, async (req, res) => {
-  const { figuraId, delta } = req.body;
-  const user = await Usuario.findById(req.user._id);
-  const entry = user.figurasUsuario.find(fu =>
-    fu.figura.toString() === figuraId
-  );
-  if (!entry) return res.status(404).json({ error: "Figurita no encontrada" });
-  entry.count = Math.max(0, entry.count + delta);
-  await user.save();
-  res.json({ figuraId, count: entry.count });
-});
+  // POST /usuarios/update-figura
+  // routes/usuarios.js
+  router.post("/update-figura", auth, async (req, res) => {
+    const { figuraId, delta } = req.body;
+
+    // 1. Aplica el delta a todos los usuarios que tengan esa figura
+    const updateResult = await Usuario.updateMany(
+      { "figurasUsuario.figura": figuraId },
+      { $inc: { "figurasUsuario.$[elem].count": delta } },
+      {
+        arrayFilters: [{ "elem.figura": figuraId }],
+        multi: true
+      }
+    );
+
+    // 2. Asegura que ningún count baje de 0 (pudiera pasar si delta es negativo grande)
+    await Usuario.updateMany(
+      { "figurasUsuario.count": { $lt: 0 } },
+      { $set: { "figurasUsuario.$[neg].count": 0 } },
+      {
+        arrayFilters: [{ "neg.count": { $lt: 0 } }],
+        multi: true
+      }
+    );
+
+    res.json({
+      message: "Figura actualizada en todos los usuarios",
+      matchedCount: updateResult.matchedCount,
+      modifiedCount: updateResult.modifiedCount
+    });
+  });
+
 
 
   router.post('/add-album', auth, async (req, res) => {
@@ -220,5 +240,85 @@ router.post("/update-figura", auth, async (req, res) => {
       res.status(500).json({ error: 'Error del servidor' });
     }
   });
+
+  router.post('/create-set', auth, async (req, res) => {
+    const userId  = req.user._id;
+    const { albumId, tipo } = req.body;
+    if (!albumId || !tipo) {
+      return res.status(400).json({ error: 'Falta albumId o tipo' });
+    }
+  
+    // 1) Verifico que el álbum exista
+    const album = await Album.findById(albumId).populate('figuras');
+    if (!album) {
+      return res.status(404).json({ error: 'Álbum no encontrado' });
+    }
+  
+    // 2) Recojo todas las figuras de ese tipo en el álbum
+    const figsOfType = album.figuras.filter(f => f.tipo === tipo);
+    if (figsOfType.length === 0) {
+      return res.status(400).json({ error: 'No hay figuras de ese tipo en el álbum' });
+    }
+  
+    // 3) Cargo al usuario con sus figurasUsuario
+    const usuario = await Usuario.findById(userId);
+    if (!usuario) {
+      return res.status(404).json({ error: 'Usuario no encontrado' });
+    }
+  
+    // 4) Compruebo que tiene al menos 1 de cada figura
+    for (const fig of figsOfType) {
+      const fu = usuario.figurasUsuario.find(x => x.figura.equals(fig._id));
+      if (!fu || fu.count < 1) {
+        return res.status(400).json({
+          error: `No tienes suficiente de la figura ${fig.code}`
+        });
+      }
+    }
+  
+    // 5) Hago el decremento de cada figura
+    for (const fig of figsOfType) {
+      const idx = usuario.figurasUsuario.findIndex(x => x.figura.equals(fig._id));
+      usuario.figurasUsuario[idx].count -= 1;
+    }
+  
+    // 6) Incremento (o inicializo) el set de este tipo
+    const existingSet = usuario.setsUsuario.find(s => s.tipo === tipo);
+    if (existingSet) {
+      existingSet.count += 1;
+    } else {
+      usuario.setsUsuario.push({
+        album: albumId,
+        tipo,
+        count: 1
+      });
+    }
+  
+    // 7) Guardo y devuelvo al usuario actualizado (sin la contraseña)
+    await usuario.save();
+    const safeUser = {
+      id:       usuario._id,
+      nombre:   usuario.nombre,
+      rol:      usuario.rol,
+      albumesUsuario: usuario.albumesUsuario,
+      // opcional: devolver también sus nuevos sets y figurasUsuario
+      setsUsuario:    usuario.setsUsuario,
+      figurasUsuario: usuario.figurasUsuario
+    };
+  
+    res.json({ message: 'Set creado!', usuario: safeUser });
+  });
+
+  router.get("/sets", auth, async (req, res) => {
+    const { albumId } = req.query;
+    const user = await Usuario.findById(req.user._id);
+    if (!user) return res.status(404).json({ error: "Usuario no encontrado" });
+    const arr = (user.setsUsuario || [])
+      .filter(s => s.album.toString() === albumId)
+      .map(({ tipo, count }) => ({ tipo, count }));
+  
+    return res.json(arr);
+  });
+  
 
 module.exports = router;

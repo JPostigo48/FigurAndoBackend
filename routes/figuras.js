@@ -1,72 +1,123 @@
 // routes/figuras.js
-const router = require("express").Router();
-const Figura = require("../models/figura.model");
+const router  = require("express").Router();
+const auth    = require("../middleware/auth");         // tu middleware de auth
+const Figura  = require("../models/figura.model");
+const Album   = require("../models/album.model");
+const Usuario = require("../models/usuario.model");
 
-// GET all figuras
-router.route("/").get(async (req, res) => {
+// ——————————————————————————————————————————————
+// GET all figuras (simple)
+// GET /figuras
+router.get("/", auth, async (req, res) => {
   try {
     const figuras = await Figura.find();
     res.json(figuras);
   } catch (err) {
-    res.status(500).json("Error: " + err);
+    console.error(err);
+    res.status(500).json({ error: "Error de servidor" });
   }
 });
 
-// ADD new figura
-router.route("/add").post(async (req, res) => {
-  const { album, code, tipo } = req.body;
-
-  if (!album || !code || !tipo) {
-    return res.status(400).json("Faltan campos obligatorios");
+// ——————————————————————————————————————————————
+// ADD new figura, propagar a álbum y a usuarios
+// POST /figuras/add
+router.post("/add", auth, async (req, res) => {
+  const { albumId, code, tipo } = req.body;
+  if (!albumId || !code || !tipo) {
+    return res.status(400).json({ error: "Faltan campos obligatorios" });
   }
-
-  const nuevaFigura = new Figura({ album, code, tipo });
 
   try {
-    const saved = await nuevaFigura.save();
-    // Devolvemos el objeto creado para que el front pueda leer el _id
-    res.status(201).json(saved);
+    // 1) Verificar que el álbum exista y obtener sus tipos válidos
+    const album = await Album.findById(albumId).select("nombre tipos figuras");
+    if (!album) {
+      return res.status(404).json({ error: "Álbum no encontrado" });
+    }
+
+    // 2) Validar que 'tipo' esté en album.tipos
+    if (!album.tipos.some(t => t.key === tipo)) {
+      return res.status(400).json({
+        error: `Tipo '${tipo}' no válido para el álbum '${album.nombre}'`
+      });
+    }
+
+    // 3) Crear y guardar la figura
+    const nueva = new Figura({
+      album: album.nombre,
+      code,
+      tipo
+    });
+    await nueva.save();
+
+    // 4) Añadir al array de figuras del álbum
+    album.figuras.push(nueva._id);
+    await album.save();
+
+    // 5) Para cada usuario que tenga ese álbum, añadir la figura con count=0
+    await Usuario.updateMany(
+      { albumesUsuario: albumId },
+      { $push: { figurasUsuario: { figura: nueva._id, count: 0 } } }
+    );
+
+    res.status(201).json({ figure: nueva });
   } catch (err) {
-    res.status(400).json("Error: " + err);
+    console.error(err);
+    res.status(500).json({ error: "Error creando figura" });
   }
 });
 
-// GET figura by ID
-router.route("/:id").get(async (req, res) => {
+// ——————————————————————————————————————————————
+// DELETE figura by ID, propagar a álbum y a usuarios
+// DELETE /figuras/:id
+router.delete("/:id", auth, async (req, res) => {
+  const figId = req.params.id;
+  try {
+    // 1) Eliminar la figura de la colección
+    const figura = await Figura.findByIdAndDelete(figId);
+    if (!figura) {
+      return res.status(404).json({ error: "Figura no encontrada" });
+    }
+
+    // 2) Quitarla del array de figuras de todos los álbumes (normalmente sólo uno)
+    await Album.updateMany(
+      { figuras: figId },
+      { $pull: { figuras: figId } }
+    );
+
+    // 3) Quitarla de las colecciones de todos los usuarios
+    await Usuario.updateMany(
+      {},
+      { $pull: { figurasUsuario: { figura: figId } } }
+    );
+
+    res.json({ message: "Figura eliminada de colección, álbum y usuarios" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Error eliminando figura" });
+  }
+});
+
+// ——————————————————————————————————————————————
+// UPDATE figura by ID (sin propagación extra — los usuarios seguirán apuntando al mismo _id)
+// POST /figuras/update/:id
+router.post("/update/:id", auth, async (req, res) => {
   try {
     const figura = await Figura.findById(req.params.id);
-    if (!figura) return res.status(404).json("Figura no encontrada");
-    res.json(figura);
-  } catch (err) {
-    res.status(400).json("Error: " + err);
-  }
-});
+    if (!figura) {
+      return res.status(404).json({ error: "Figura no encontrada" });
+    }
 
-// DELETE figura by ID
-router.route("/del/:id").delete(async (req, res) => {
-  try {
-    await Figura.findByIdAndDelete(req.params.id);
-    res.json("Figura eliminada!");
-  } catch (err) {
-    res.status(400).json("Error: " + err);
-  }
-});
-
-// UPDATE figura by ID
-router.route("/update/:id").post(async (req, res) => {
-  try {
-    const figura = await Figura.findById(req.params.id);
-    if (!figura) return res.status(404).json("Figura no encontrada");
-
-    const { album, code, tipo } = req.body;
-    if (album) figura.album = album;
-    if (code)   figura.code  = code;
-    if (tipo)   figura.tipo  = tipo;
+    const { albumId, code, tipo } = req.body;
+    // si cambias album, tendrías que mover también en Album.figuras y en usuarios,
+    // pero normalmente no se reubica de álbum. Aquí solo code/tipo:
+    if (code) figura.code = code;
+    if (tipo) figura.tipo = tipo;
 
     const updated = await figura.save();
     res.json(updated);
   } catch (err) {
-    res.status(400).json("Error: " + err);
+    console.error(err);
+    res.status(400).json({ error: err.message });
   }
 });
 

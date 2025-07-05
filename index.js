@@ -14,7 +14,7 @@ app.use(cors({
   allowedHeaders: ["Content-Type","Authorization"]
 }));
 app.use(express.json());
-// app.use(morgan('tiny'));
+app.use(morgan('tiny'));
 
 const uri = process.env.MONGODB_URI;
 mongoose.connect(uri);
