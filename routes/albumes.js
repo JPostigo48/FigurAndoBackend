@@ -90,7 +90,7 @@ router.get("/:id/tipos", async (req, res) => {
 });
 
 // POST: añadir un nuevo tipo
-router.post("/:id/tipos", async (req, res) => {
+router.post("/:id/tipos/add", async (req, res) => {
   const { key, label } = req.body;
   if (!key || !label) {
     return res.status(400).json({ error: "Falta key o label" });
@@ -172,7 +172,7 @@ router.put("/:id/tipos/:key", auth, async (req, res) => {
 });
 
 // DELETE: eliminar un tipo
-router.delete("/:id/tipos/:key", async (req, res) => {
+router.delete("/:id/tipos/delete/:key", async (req, res) => {
   const { key } = req.params;
   const album = await Album.findById(req.params.id);
   if (!album) return res.status(404).json({ error: "Álbum no encontrado" });

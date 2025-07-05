@@ -8,7 +8,10 @@ const figurasUsuarioSchema = new Schema({
     ref: 'Figura',
     required: true
   },
-  tipo:   { type: String, required: true },
+  tipo:   {
+    type: String,
+    // required: true
+  },
   count: {
     type: Number,
     default: 0,
