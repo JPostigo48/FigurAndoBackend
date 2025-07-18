@@ -44,6 +44,47 @@ const setUsuarioSchema = new Schema({
   }
 }, { _id: false });
 
+const orderItemSchema = new Schema({
+  figura: {
+    type: Schema.Types.ObjectId,
+    ref: 'Figura',
+    required: true
+  },
+  quantity: {
+    type: Number,
+    required: true,
+    min: 1
+  }
+}, { _id: false })
+
+const orderSchema = new Schema({
+  album: {
+    type: Schema.Types.ObjectId,
+    ref: 'Album',
+    required: true
+  },
+  customer: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  items: [ orderItemSchema ],
+  total: {
+    type: Number,
+    required: true,
+    min: 0
+  },
+  status: {
+    type: String,
+    enum: ['pending','delivered','cancelled'],
+    default: 'pending'
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
+  }
+}, { _id: true })
+
 const usuarioSchema = new Schema({
   nombre: {
     type: String,
@@ -63,6 +104,7 @@ const usuarioSchema = new Schema({
   }],
   figurasUsuario: [ figurasUsuarioSchema ],
   setsUsuario:     [ setUsuarioSchema ], 
+  orders: [ orderSchema ],
   rol: {
     type: String,
     enum: ['usuario','admin'],

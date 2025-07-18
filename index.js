@@ -26,8 +26,10 @@ console.log("MongoDB database connection established successfully");
 const albumesRouter = require('./routes/albumes');
 const figurasRouter = require('./routes/figuras');
 const usuariosRouter = require('./routes/usuarios');
+const ordersRouter = require('./routes/orders');
 
 app.use('/usuarios',usuariosRouter)
+app.use('/orders',ordersRouter)
 app.use('/figuras',figurasRouter)
 app.use('/albumes',albumesRouter)
 

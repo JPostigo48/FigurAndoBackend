@@ -189,8 +189,6 @@ router.post("/update-figura", auth, async (req, res) => {
   res.json({ figuraId, count: entry.count });
 });
 
-
-
 router.post('/add-album', auth, async (req, res) => {
   try {
     const userId  = req.user._id;
